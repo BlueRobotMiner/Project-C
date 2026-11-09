@@ -2,6 +2,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class ServerBrowserPanel : MonoBehaviour
 {
@@ -111,10 +112,28 @@ public class ServerBrowserPanel : MonoBehaviour
         string name = createNameInput.text.Trim();
         if (string.IsNullOrEmpty(name)) { ShowPopupInfo("Enter a server name first."); return; }
 
-        HostApproval.ServerPassword = hostPasswordInput.text;    // empty = none
-        NetworkManager.Singleton.StartHost();
-        // TODO: load lobby scene, pause menu shows JoinCode
+        HostApproval.ServerPassword = hostPasswordInput.text;
+
+        NetworkManager.Singleton.StartHost();          // 1) start FIRST — creates SceneManager
+
+        NetworkManager.Singleton.SceneManager.OnSceneEvent += OnHostSceneLoaded;   // 2) then subscribe
+
+        NetworkManager.Singleton.SceneManager.LoadScene("Playground", LoadSceneMode.Single);   // 3) then load
+
         joinStatusText.text = $"Hosted '{name}'{(privateToggle.isOn ? " (private)" : "")}";
+    }
+
+        void OnHostSceneLoaded(SceneEvent e)
+    {
+        // Fires on server AND clients; only the server assigns halves.
+        if (!NetworkManager.Singleton.IsServer) return;
+        if (e.SceneName != "Playground") return;
+
+        NetworkManager.Singleton.SceneManager.OnSceneEvent -= OnHostSceneLoaded;   // one-shot
+
+        var character = FindObjectOfType<SplitCharacterManager>();
+        if (character != null && character.IsSpawned)
+            character.RequestAssignServerRpc();              // host claims a half (top wins first-come)
     }
 
     // ================= password popup =================

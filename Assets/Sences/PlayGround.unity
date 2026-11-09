@@ -703,9 +703,21 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 243210735
       objectReference: {fileID: 0}
+    - target: {fileID: 860729625429735396, guid: db2ada39a3a63b945b3016e26fef1fb2, type: 3}
+      propertyPath: InScenePlacedSourceGlobalObjectIdHash
+      value: 1530419126
+      objectReference: {fileID: 0}
     - target: {fileID: 860729625429735399, guid: db2ada39a3a63b945b3016e26fef1fb2, type: 3}
       propertyPath: m_Name
       value: SplitCharacter
+      objectReference: {fileID: 0}
+    - target: {fileID: 1443438143463144891, guid: db2ada39a3a63b945b3016e26fef1fb2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.108
+      objectReference: {fileID: 0}
+    - target: {fileID: 2919806698763315171, guid: db2ada39a3a63b945b3016e26fef1fb2, type: 3}
+      propertyPath: m_IsTrigger
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4335552546156362464, guid: db2ada39a3a63b945b3016e26fef1fb2, type: 3}
       propertyPath: m_LocalPosition.y

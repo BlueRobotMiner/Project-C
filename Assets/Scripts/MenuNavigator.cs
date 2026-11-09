@@ -7,9 +7,9 @@ public class MenuNavigator : MonoBehaviour
     [SerializeField] private GameObject mainMenuPanel;
     [SerializeField] private GameObject settingsPanel;
     [SerializeField] private GameObject serverBrowserPanel;
-    // [SerializeField] private GameObject creditsPanel;
+    // [SerializeField] private GameObject creditsPanel;   // add when imported
 
-    [SerializeField] private string prototypeSceneName = "Prototype";   // set to your scene's exact name
+    [SerializeField] private string prototypeSceneName = "PlayGround";   // set to your scene's exact name
 
     private readonly System.Collections.Generic.Stack<GameObject> history = new();
 

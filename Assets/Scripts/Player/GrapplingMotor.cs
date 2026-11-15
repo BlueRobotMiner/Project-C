@@ -26,12 +26,22 @@ public class GrapplingMotor : NetworkBehaviour
 
         targetPos = point;
         velocityToSet = CalculateJumpVelocity(rb.position, point, arc);
+        if (float.IsNaN(velocityToSet.x) || float.IsNaN(velocityToSet.y) || float.IsNaN(velocityToSet.z))
+        {
+            flyingToPosition = false;
+            Frozen = false;
+            return;
+        }
         flyingToPosition = true;
         rb.velocity = velocityToSet;   // set ONCE — gravity curves it into the arc
+        if (Time.frameCount % 1 == 0)   // TEMP — delete after
+            Debug.Log($"[Motor] launch v={velocityToSet} from={rb.position} target={targetPos} " + $"kinematic={rb.isKinematic} grav={rb.useGravity}");
     }
 
     private void FixedUpdate()
     {
+                if (Time.frameCount % 30 == 0)  // TEMP — delete after
+            Debug.Log($"[Motor] flying v={rb.velocity}");
         if (!IsServer || !flyingToPosition) return;
 
         if (Vector3.Distance(rb.position, targetPos) < 1.5f)
@@ -48,16 +58,20 @@ public class GrapplingMotor : NetworkBehaviour
         flyingToPosition = false;
         Frozen = false;
     }
-
     private Vector3 CalculateJumpVelocity(Vector3 start, Vector3 end, float trajectoryHeight)
     {
-        float gravity = Physics.gravity.y;
-        float displacementY = end.y - start.y;
-        Vector3 displacementXZ = new Vector3(end.x - start.x, 0f, end.z - start.z);
+        float g   = -Physics.gravity.y;   // gravity magnitude (positive)
+        Vector3 dispXZ = new Vector3(end.x - start.x, 0f, end.z - start.z);
+        float dy = end.y - start.y;       // + = target above you
 
-        Vector3 velocityY  = Vector3.up * Mathf.Sqrt(-2f * gravity * trajectoryHeight);
-        Vector3 velocityXZ = displacementXZ / (Mathf.Sqrt(-2f * trajectoryHeight / gravity)
-                                              + Mathf.Sqrt(2f * displacementY / gravity));
-        return velocityXZ + velocityY;
+        // Apex must clear the target no matter what — that guarantees every
+        // sqrt below gets a non-negative argument (no NaN, ever)
+        float apex = Mathf.Max(trajectoryHeight, dy + 0.5f);
+
+        float vy   = Mathf.Sqrt(2f * g * apex);          // launch speed to reach the apex
+        float tUp  = Mathf.Sqrt(2f * apex / g);          // time rising to the apex
+        float tDown = Mathf.Sqrt(2f * Mathf.Max(apex - dy, 0.01f) / g); // apex → target fall
+
+        return dispXZ / (tUp + tDown) + Vector3.up * vy;
     }
 }

@@ -40,17 +40,22 @@ public class Grappling : NetworkBehaviour
         if (cdTimer > 0f) cdTimer -= Time.deltaTime;
     }
 
+    private bool hitSomething;   // NEW: did the shot actually connect?
+
     private void TryStartGrapple()
     {
         if (aiming || cdTimer > 0f) return;
         aiming = true;
 
-        // The client that owns the legs aims — it's the one that sees the target
-                if (Physics.Raycast(cam.transform.position, cam.transform.forward,
-                            out var hit, maxGrappleDistance, grappleable))
-            grapplePoint = hit.point;
-        else
-            grapplePoint = cam.transform.position + cam.transform.forward * maxGrappleDistance;
+        hitSomething = Physics.Raycast(cam.transform.position, cam.transform.forward,
+                                       out var hit, maxGrappleDistance, grappleable);
+        grapplePoint = hitSomething ? hit.point
+                                    : cam.transform.position + cam.transform.forward * maxGrappleDistance;
+
+        SubmitAimServerRpc(grapplePoint);   // rope appears on BOTH screens (miss = flick to max range)
+
+        // Connect → launch. Miss → rope flicks out and retracts, no pull.
+        Invoke(hitSomething ? nameof(ExecuteGrapple) : nameof(StopGrapple), grappleDelayTime);
     }
 
     private void ExecuteGrapple()

@@ -29,10 +29,11 @@ public class ServerBrowserPanel : MonoBehaviour
     [SerializeField] private TMP_Text   joinStatusText;
 
     [Header("Connection")]
-    [SerializeField] private RelaySession relay;             // NEW backend: join-code route
+    [SerializeField] private RelaySession relay;
 
     RectTransform templateRect;
     System.Action onValidPassword;
+    string pendingJoinCode;   // kept for the password retry after a refused attempt
 
     void Awake()
     {
@@ -40,7 +41,7 @@ public class ServerBrowserPanel : MonoBehaviour
         template.gameObject.SetActive(false);                // template never displays
 
         passwordPopup.SetActive(false);
-        errorText.text = "";
+        errorText.text     = "";
         joinStatusText.text = "";
         passwordInput.contentType     = TMP_InputField.ContentType.Password;
         hostPasswordInput.contentType = TMP_InputField.ContentType.Password;
@@ -50,14 +51,26 @@ public class ServerBrowserPanel : MonoBehaviour
         createButton.onClick.AddListener(OnCreate);
         joinCodeButton.onClick.AddListener(OnJoinByCode);
         passwordInput.onSubmit.AddListener(_ => OnSubmit());
-         if (relay == null) relay = RelaySession.Instance != null
+
+        // Fallback: find the RelaySession singleton if the Inspector slot was left empty
+        if (relay == null) relay = RelaySession.Instance != null
             ? RelaySession.Instance
             : FindObjectOfType<RelaySession>();
         if (relay == null)
             Debug.LogError("ServerBrowserPanel: no RelaySession in scene — add one to the NetworkManager object.");
-        if (NetworkManager.Singleton != null)
-        NetworkManager.Singleton.OnClientDisconnectCallback += _ =>
-        joinStatusText.text = "Disconnected — wrong password, or the host closed the game.";
+
+        // Refused connection = the host requires a password (or closed the game).
+        // The popup only appears HERE — never before a connection attempt.
+                if (NetworkManager.Singleton != null)
+            NetworkManager.Singleton.OnClientDisconnectCallback += clientId =>
+            {
+                if (string.IsNullOrEmpty(pendingJoinCode)) return;   // only react to join attempts
+
+                joinStatusText.text = "Connection refused by host.";
+                AskPassword("Connection refused — this game requires a password " +
+                            "(or the host closed it). Enter the password below, then Join again.",
+                    () => _ = relay.JoinAsync(pendingJoinCode, passwordInput.text));
+            };
     }
 
     void OnEnable()
@@ -85,7 +98,8 @@ public class ServerBrowserPanel : MonoBehaviour
             var m = mock[i];
             var row = Instantiate(template, content);
             row.gameObject.SetActive(true);
-            row.Init(m.n, m.players, m.ping, m.priv, m.pw, i, () => ShowPopupInfo("Demo build — lobbies come in the full version."));
+            row.Init(m.n, m.players, m.ping, m.priv, m.pw, i,
+                () => joinStatusText.text = "Demo build — lobbies come in the full version.");
         }
     }
 
@@ -95,15 +109,16 @@ public class ServerBrowserPanel : MonoBehaviour
         string code = codeInput.text.Trim();
         if (string.IsNullOrEmpty(code)) { joinStatusText.text = "Enter a join code."; return; }
 
-        AskPassword("Enter the host's password — leave blank if the game has none.", () =>
-            _ = relay.JoinAsync(code, passwordInput.text));
+        pendingJoinCode = code;
+        joinStatusText.text = "Connecting…";
+        _ = relay.JoinAsync(code, "");   // try as an open game first — popup only if refused
     }
 
     // ================= host flow (real, via Relay) =================
     async void OnCreate()
     {
         string name = createNameInput.text.Trim();
-        if (string.IsNullOrEmpty(name)) { ShowPopupInfo("Enter a server name first."); return; }
+        if (string.IsNullOrEmpty(name)) { joinStatusText.text = "Enter a server name first."; return; }
 
         HostApproval.ServerPassword = hostPasswordInput.text;   // empty string = open game
 
@@ -115,19 +130,17 @@ public class ServerBrowserPanel : MonoBehaviour
         NetworkManager.Singleton.SceneManager.LoadScene("Playground", LoadSceneMode.Single);
     }
 
-    // ================= password popup (demo visuals only) =================
+    // ================= password popup =================
     void AskPassword(string prompt, System.Action onValid)
     {
-        popupLabel.text  = "Please enter the password below";
-        errorText.color  = Color.white;
-        errorText.text   = prompt;
+        popupLabel.text     = "Please enter the password below";
+        errorText.color     = Color.white;
+        errorText.text      = prompt;
         passwordInput.text  = "";
         passwordPopup.SetActive(true);
         passwordInput.ActivateInputField();
         onValidPassword = onValid;
     }
-
-    void ShowPopupInfo(string msg) => AskPassword(msg, null);
 
     void OnSubmit()
     {

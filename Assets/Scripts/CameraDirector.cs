@@ -19,7 +19,10 @@ public class CameraDirector : NetworkBehaviour
     private float topYaw, topPitch, botYaw, botPitch;
     private bool usingTop;
     public float TopPitch => topPitch;
-     public float BotYaw   => botYaw; // player 2 movements
+    public float BotYaw   => botYaw; // player 2 movements
+    private float topRoll;
+    public void SetTopRoll(float roll) => topRoll = roll;
+    public Transform TopPivotRef => topPivot;   // lets the lean borrow the real pivot
 
     public override void OnNetworkSpawn()
     {
@@ -32,6 +35,7 @@ public class CameraDirector : NetworkBehaviour
 
     private void Update()
     {
+        if (PauseController.SessionPaused) return;
         // 1) Pick which camera this client renders
         bool canTop    = IsMyHalf(true);
         bool canBottom = IsMyHalf(false);
@@ -96,10 +100,10 @@ public class CameraDirector : NetworkBehaviour
     // Local-only pitch so the camera tilts up/down without touching the body
     private void LateUpdate()
     {
-        if (activePivot == null) return;
-        if (activePivot == topPivot)  topPivot.localRotation =
-            Quaternion.Euler(topPitch, topYaw, 0f);
-        else                          bottomPivot.localRotation =
-            Quaternion.Euler(botPitch, botYaw, 0f);
+    if (activePivot == null) return;
+    if (activePivot == topPivot) topPivot.localRotation =
+        Quaternion.Euler(topPitch, topYaw, topRoll);
+    else
+    bottomPivot.localRotation = Quaternion.Euler(botPitch, botYaw, 0f);
     }
 }

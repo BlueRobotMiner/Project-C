@@ -30,6 +30,7 @@ public class PlayerTwoController : NetworkBehaviour
 
     private void Update()
     {
+        if (PauseController.SessionPaused) return;
         if (!ControlsMyHalf()) return;
         if (Keyboard.current == null) return;
 
@@ -51,6 +52,7 @@ public class PlayerTwoController : NetworkBehaviour
 
     private void FixedUpdate()
     {
+        if (PauseController.SessionPaused) return;
         if (!ControlsMyHalf()) return;
 
         var cam = GetComponent<CameraDirector>();

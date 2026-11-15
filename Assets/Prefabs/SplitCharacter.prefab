@@ -46,14 +46,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   torso: {fileID: 3017176322447056985}
-  leanRatio: 0.4
-  maxLeanAngle: 45
+  leanPivot: {fileID: 4372989743451364589}
+  camAnchor: {fileID: 2535444920788835039}
+  leanAngle: 15
+  leanSideDist: 0.35
+  leanDropDist: 0.12
+  leanSnap: 14
   topCam: {fileID: 2535444920024046498}
   aimOrigin: {fileID: 2535444920559472633}
   hipFov: 60
   aimFov: 35
   aimSpeed: 10
-  LeanAngle:
+  leanHingeY: -0.5
+  LeanRoll:
     m_InternalValue: 0
 --- !u!1 &2535444919513788841
 GameObject:
@@ -685,6 +690,37 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 8
+--- !u!1 &5247281210355127372
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4372989743451364589}
+  m_Layer: 0
+  m_Name: Lean
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4372989743451364589
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5247281210355127372}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.657, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3017176322447056985}
+  m_RootOrder: -1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5604378425224199967
 GameObject:
   m_ObjectHideFlags: 0
@@ -716,6 +752,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2535444920559472633}
+  - {fileID: 4372989743451364589}
   m_Father: {fileID: 1510010590575091183}
   m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -946,9 +983,10 @@ MonoBehaviour:
   lr: {fileID: 2740918992196342197}
   motor: {fileID: 1067473095165453379}
   maxGrappleDistance: 25
-  grappleDelayTime: 0.25
   overshootYAxis: 5
   grappleable:
     serializedVersion: 2
     m_Bits: 64
+  tongueSpeed: 30
+  retractSpeed: 70
   grapplingCd: 2.5

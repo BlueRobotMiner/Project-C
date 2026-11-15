@@ -1,8 +1,8 @@
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.SceneManagement;
 
 public class ServerBrowserPanel : MonoBehaviour
 {
@@ -12,7 +12,7 @@ public class ServerBrowserPanel : MonoBehaviour
 
     [Header("Password pop-up")]
     [SerializeField] private GameObject passwordPopup;       // Password pop-upPanel
-    [SerializeField] private TMP_Text popupLabel;            // its top Text (TMP) — reuse for title
+    [SerializeField] private TMP_Text popupLabel;
     [SerializeField] private TMP_Text errorText;             // "ERROR" Text (TMP)
     [SerializeField] private TMP_InputField passwordInput;
     [SerializeField] private Button submitButton, backButton;
@@ -28,16 +28,19 @@ public class ServerBrowserPanel : MonoBehaviour
     [SerializeField] private Button     joinCodeButton;
     [SerializeField] private TMP_Text   joinStatusText;
 
-    private RectTransform templateRect;
-    private System.Action onValidPassword;
+    [Header("Connection")]
+    [SerializeField] private RelaySession relay;             // NEW backend: join-code route
+
+    RectTransform templateRect;
+    System.Action onValidPassword;
 
     void Awake()
     {
-        templateRect  = template.GetComponent<RectTransform>();
-        template.gameObject.SetActive(false);                // the example never shows
+        templateRect = template.GetComponent<RectTransform>();
+        template.gameObject.SetActive(false);                // template never displays
 
         passwordPopup.SetActive(false);
-        errorText.text     = "";
+        errorText.text = "";
         joinStatusText.text = "";
         passwordInput.contentType     = TMP_InputField.ContentType.Password;
         hostPasswordInput.contentType = TMP_InputField.ContentType.Password;
@@ -46,12 +49,24 @@ public class ServerBrowserPanel : MonoBehaviour
         backButton .onClick.AddListener(() => passwordPopup.SetActive(false));
         createButton.onClick.AddListener(OnCreate);
         joinCodeButton.onClick.AddListener(OnJoinByCode);
-        passwordInput.onSubmit.AddListener(_ => OnSubmit());   // Enter submits
+        passwordInput.onSubmit.AddListener(_ => OnSubmit());
+         if (relay == null) relay = RelaySession.Instance != null
+            ? RelaySession.Instance
+            : FindObjectOfType<RelaySession>();
+        if (relay == null)
+            Debug.LogError("ServerBrowserPanel: no RelaySession in scene — add one to the NetworkManager object.");
+        if (NetworkManager.Singleton != null)
+        NetworkManager.Singleton.OnClientDisconnectCallback += _ =>
+        joinStatusText.text = "Disconnected — wrong password, or the host closed the game.";
     }
 
-    void OnEnable() { if (!Application.isPlaying) return; Refresh(); }
+    void OnEnable()
+    {
+        if (!Application.isPlaying) return;
+        Refresh();
+    }
 
-    // ================= list =================
+    // ================= demo-only list =================
     public void Refresh()
     {
         foreach (Transform c in content)
@@ -70,73 +85,37 @@ public class ServerBrowserPanel : MonoBehaviour
             var m = mock[i];
             var row = Instantiate(template, content);
             row.gameObject.SetActive(true);
-            row.Init(m.n, m.players, m.ping, m.priv, m.pw, i, () => JoinRow(row));
+            row.Init(m.n, m.players, m.ping, m.priv, m.pw, i, () => ShowPopupInfo("Demo build — lobbies come in the full version."));
         }
     }
 
-    // ================= join flows =================
-    public void JoinRow(ServerRow row)
-    {
-        if (row.HasPassword)
-            AskPassword($"Password required to join {row.ServerName}",
-                        () => Connect(row.ServerName, passwordInput.text));
-        else
-            Connect(row.ServerName, null);
-    }
-
+    // ================= join flow (real, via Relay) =================
     void OnJoinByCode()
     {
         string code = codeInput.text.Trim();
         if (string.IsNullOrEmpty(code)) { joinStatusText.text = "Enter a join code."; return; }
 
-        // Mock lookup — Unity Lobby later resolves code → lobby data
-        if (code == "ZACH")            Connect(code, null);
-        else if (code == "ZACH-LOCKED") AskPassword("This server requires a password",
-                        () => Connect(code, passwordInput.text));
-        else                            joinStatusText.text = "No server with that code.";
+        AskPassword("Enter the host's password — leave blank if the game has none.", () =>
+            _ = relay.JoinAsync(code, passwordInput.text));
     }
 
-    void Connect(string target, string password)
-    {
-        JoinPayload.Password    = password;
-        JoinPayload.HasPassword = !string.IsNullOrEmpty(password);
-        NetworkManager.Singleton.NetworkConfig.ConnectionData =
-            System.Text.Encoding.UTF8.GetBytes(password ?? "");
-        NetworkManager.Singleton.StartClient();
-        joinStatusText.text = $"Connecting to {target}...";
-    }
-
-    // ================= host flow =================
-    void OnCreate()
+    // ================= host flow (real, via Relay) =================
+    async void OnCreate()
     {
         string name = createNameInput.text.Trim();
         if (string.IsNullOrEmpty(name)) { ShowPopupInfo("Enter a server name first."); return; }
 
-        HostApproval.ServerPassword = hostPasswordInput.text;
+        HostApproval.ServerPassword = hostPasswordInput.text;   // empty string = open game
 
-        NetworkManager.Singleton.StartHost();          // 1) start FIRST — creates SceneManager
+        bool hosted = await relay.HostAsync();
+        if (!hosted) { joinStatusText.text = "Host failed — see console."; return; }
 
-        NetworkManager.Singleton.SceneManager.OnSceneEvent += OnHostSceneLoaded;   // 2) then subscribe
+        joinStatusText.text = $"Hosted '{name}' — Code: {relay.JoinCode}";
 
-        NetworkManager.Singleton.SceneManager.LoadScene("Playground", LoadSceneMode.Single);   // 3) then load
-
-        joinStatusText.text = $"Hosted '{name}'{(privateToggle.isOn ? " (private)" : "")}";
+        NetworkManager.Singleton.SceneManager.LoadScene("Playground", LoadSceneMode.Single);
     }
 
-        void OnHostSceneLoaded(SceneEvent e)
-    {
-        // Fires on server AND clients; only the server assigns halves.
-        if (!NetworkManager.Singleton.IsServer) return;
-        if (e.SceneName != "Playground") return;
-
-        NetworkManager.Singleton.SceneManager.OnSceneEvent -= OnHostSceneLoaded;   // one-shot
-
-        var character = FindObjectOfType<SplitCharacterManager>();
-        if (character != null && character.IsSpawned)
-            character.RequestAssignServerRpc();              // host claims a half (top wins first-come)
-    }
-
-    // ================= password popup =================
+    // ================= password popup (demo visuals only) =================
     void AskPassword(string prompt, System.Action onValid)
     {
         popupLabel.text  = "Please enter the password below";
@@ -148,25 +127,13 @@ public class ServerBrowserPanel : MonoBehaviour
         onValidPassword = onValid;
     }
 
-    void ShowPopupInfo(string msg) => AskPassword(msg, null);    // info reuse; no password needed → Back closes
+    void ShowPopupInfo(string msg) => AskPassword(msg, null);
 
     void OnSubmit()
     {
-        // Mock check only. The REAL, uncheatable check is HostApproval on the host at connect time.
         if (onValidPassword == null) { passwordPopup.SetActive(false); return; }
-
-        if (passwordInput.text == "swordfish")                    // matches the mock servers
-        {
-            passwordPopup.SetActive(false);
-            onValidPassword.Invoke();
-            onValidPassword = null;
-        }
-        else
-        {
-            errorText.color  = Color.red;
-            errorText.text   = "Incorrect password — try again.";
-            passwordInput.text  = "";
-            passwordInput.ActivateInputField();
-        }
+        passwordPopup.SetActive(false);
+        onValidPassword.Invoke();
+        onValidPassword = null;
     }
 }

@@ -1,14 +1,15 @@
-using Unity.Netcode;   // was: using Netcode;   ← the actual bug
+using Unity.Netcode;
 using UnityEngine;
 
 public class CharacterSetup : NetworkBehaviour
 {
-    void Start()
+    public override void OnNetworkSpawn()
     {
-        // Nothing to do if netcode isn't running (edit-mode tests, etc.)
-        if (NetworkManager.Singleton == null || !IsSpawned) return;
-        if (NetworkManager.Singleton.IsServer) return; // server assigns via manager, not here
+        Debug.Log($"[CharSetup] spawned on client {NetworkManager.LocalClientId}");  // TEMP
+        if (NetworkManager.Singleton == null || NetworkManager.Singleton.IsServer) return;
 
-        GetComponent<SplitCharacterManager>().RequestAssignServerRpc();
+        var m = GetComponent<SplitCharacterManager>();
+        Debug.Log($"[CharSetup] requesting BottomHalf");                            // TEMP
+        m.RequestAssignServerRpc();
     }
 }

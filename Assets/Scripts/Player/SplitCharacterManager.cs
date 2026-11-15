@@ -34,4 +34,12 @@ public class SplitCharacterManager : NetworkBehaviour
         TopHalfClient.Value    = p.Receive.SenderClientId;
         BottomHalfClient.Value = p.Receive.SenderClientId;
     }
+        public override void OnNetworkSpawn()
+    {
+        // When this scene-placed body finishes spawning on the server,
+        // the host (server's own client id = 0 for host) claims the first half.
+        if (IsServer && TopHalfClient.Value == ulong.MaxValue)
+            TopHalfClient.Value = NetworkManager.ServerClientId;   // host
+        // joining clients claim theirs via CharacterSetup's RequestAssignServerRpc
+    }
 }

@@ -11,7 +11,6 @@ public class CameraDirector : NetworkBehaviour
     [SerializeField] private Camera bottomCam;
 
     [Header("Look")]
-    [SerializeField] private float sensitivity = 2f;
     [SerializeField] private Transform topBody;    // mesh of top half — rotates in yaw
     [SerializeField] private Transform bottomBody;
 
@@ -19,6 +18,8 @@ public class CameraDirector : NetworkBehaviour
     private Transform activePivot;
     private float topYaw, topPitch, botYaw, botPitch;
     private bool usingTop;
+    public float TopPitch => topPitch;
+     public float BotYaw   => botYaw; // player 2 movements
 
     public override void OnNetworkSpawn()
     {
@@ -48,10 +49,8 @@ public class CameraDirector : NetworkBehaviour
         // 2) Local pitch + collect yaw delta
         // d.x = horizontal motion → yaw (turns the body, replicated)
         // d.y = vertical motion   → pitch (camera only, local)
-        Vector2 d = Mouse.current.delta.ReadValue()
-            * (SettingsManager.Instance == null ? 2f : SettingsManager.Instance.MouseSensitivity)
-            * Time.deltaTime;
-        float yawDelta = d.x;
+        // delta is per-frame already — NO Time.deltaTime (that was killing sensitivity)
+        Vector2 d = Mouse.current.delta.ReadValue()* (SettingsManager.Instance == null ? 0.15f: SettingsManager.Instance.MouseSensitivity * 0.1f); float yawDelta = d.x;
 
         // pitch is purely local — nobody else needs to know it
         if (camTop) { topPitch = Mathf.Clamp(topPitch - d.y, -60f, 60f); }

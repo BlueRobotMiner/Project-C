@@ -4,45 +4,85 @@ using UnityEngine.InputSystem;
 
 public class PlayerOneController : NetworkBehaviour
 {
-    [Header("Top Half")]
-    [SerializeField] private Transform torso;
-    [SerializeField] private float leanSpeed = 60f;      // degrees per second
-    [SerializeField] private float maxLeanAngle = 45f;
+    [Header("Lean")]
+    [SerializeField] private Transform torso;          // torso CHILD mesh — NOT the root!
+    [SerializeField] private float leanRatio = 0.4f;   // lean = pitch × ratio
+    [SerializeField] private float maxLeanAngle = 20f; // "a little" forward/back
+
+    [Header("Aim")]
+    [SerializeField] private Camera topCam;            // your TopCamera
+    [SerializeField] private Transform aimOrigin;      // the TopPivot (yaw is replicated here)
+    [SerializeField] private float hipFov = 60f, aimFov = 35f, aimSpeed = 10f;
+
+    public NetworkVariable<float> LeanAngle = new(0f); // server writes, everyone reads
 
     private SplitCharacterManager mgr;
-    private float leanInput;
+    private float lastSentLean;
 
-    public override void OnNetworkSpawn()
-    {
-        mgr = GetComponentInParent<SplitCharacterManager>();
-    }
-
+    public override void OnNetworkSpawn() => mgr = GetComponentInParent<SplitCharacterManager>();
     public override void OnNetworkDespawn() => mgr = null;
 
     private void Update()
     {
-        if (!ControlsMyHalf()) return;
-        if (Keyboard.current == null) return;
+        // Lean applies on EVERY client (it's replicated state)
+        if (torso != null)
+            torso.localRotation = Quaternion.Euler(LeanAngle.Value, 0f, 0f);
 
-        leanInput = Keyboard.current.wKey.ReadValue() - Keyboard.current.sKey.ReadValue();
-        if (leanInput != 0f) SubmitLeanServerRpc(leanInput * leanSpeed * Time.deltaTime);
+        if (!ControlsMyHalf()) return;
+        HandleLean();
+        HandleAim();
+        HandleFire();
+    }
+
+    private void HandleLean()
+    {
+        var director = GetComponent<CameraDirector>();
+        float pitch = director != null ? director.TopPitch : 0f;
+        float lean = Mathf.Clamp(pitch * leanRatio, -maxLeanAngle, maxLeanAngle);
+
+        if (Mathf.Abs(lean - lastSentLean) > 0.5f)   // skip near-identical updates
+        {
+            lastSentLean = lean;
+            SubmitLeanServerRpc(lean);
+        }
+    }
+
+    private void HandleAim()
+    {
+        bool aiming = Mouse.current.rightButton.isPressed;
+        if (topCam != null)
+            topCam.fieldOfView = Mathf.Lerp(
+                topCam.fieldOfView, aiming ? aimFov : hipFov, aimSpeed * Time.deltaTime);
+    }
+
+    private void HandleFire()
+    {
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+            FireServerRpc(GetComponent<CameraDirector>().TopPitch);
     }
 
     private bool ControlsMyHalf()
     {
-        if (mgr == null) return false;
-        return mgr.TopHalfClient.Value == NetworkManager.LocalClientId;
+        return mgr != null && mgr.TopHalfClient.Value == NetworkManager.LocalClientId;
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void SubmitLeanServerRpc(float delta, ServerRpcParams p = default)
+    private void SubmitLeanServerRpc(float lean, ServerRpcParams p = default)
     {
-        // Server applies lean so both clients stay in sync
+        if (mgr != null && mgr.TopHalfClient.Value != p.Receive.SenderClientId) return;
+        LeanAngle.Value = lean;   // server-authoritative; replicates to all clients
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void FireServerRpc(float pitch, ServerRpcParams p = default)
+    {
         if (mgr != null && mgr.TopHalfClient.Value != p.Receive.SenderClientId) return;
 
-        float current = torso.localEulerAngles.x > 180f
-            ? torso.localEulerAngles.x - 360f : torso.localEulerAngles.x;
-        torso.localRotation = Quaternion.Euler(
-            Mathf.Clamp(current + delta, -maxLeanAngle, maxLeanAngle), 0f, 0f);
+        // Reconstruct full aim: replicated yaw (pivot) + client-passed pitch
+        Vector3 dir = aimOrigin.rotation * Quaternion.Euler(pitch, 0f, 0f) * Vector3.forward;
+
+        // Demo shot: 20m hitscan. Swap for a projectile spawn later.
+        if (Physics.Raycast(aimOrigin.position, dir, out var hit, 20f))
+            Debug.Log($"P1 shot hit {hit.collider.name} at {hit.point}");
     }
 }

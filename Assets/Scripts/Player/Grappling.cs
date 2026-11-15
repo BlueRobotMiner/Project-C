@@ -55,10 +55,8 @@ public class Grappling : NetworkBehaviour
         if (aiming || cdTimer > 0f) return;
         aiming = true;
 
-        bool hit = Physics.Raycast(cam.transform.position, cam.transform.forward,
-                                   out var ray, maxGrappleDistance, grappleable);
-        Vector3 target = hit ? ray.point
-                             : cam.transform.position + cam.transform.forward * maxGrappleDistance;
+        bool hit = Physics.Raycast(cam.transform.position, cam.transform.forward, out var ray, maxGrappleDistance, grappleable);
+        Vector3 target = hit ? ray.point : cam.transform.position + cam.transform.forward * maxGrappleDistance;
 
         SubmitShootServerRpc(target, hit);   // rope appears + animates on BOTH screens
 

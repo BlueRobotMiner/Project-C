@@ -18,9 +18,11 @@ public class PlayerTwoController : NetworkBehaviour
     private GrapplingMotor grappleMotor;
     private Vector2 moveInput;
     private float superJumpTimer;
+    private CameraDirector camDir;
 
     public override void OnNetworkSpawn()
     {
+        camDir = GetComponentInParent<CameraDirector>();
         mgr = GetComponentInParent<SplitCharacterManager>();
         rb = GetComponentInParent<Rigidbody>();
         grappleMotor = GetComponentInParent<GrapplingMotor>();
@@ -51,10 +53,15 @@ public class PlayerTwoController : NetworkBehaviour
     {
         if (!ControlsMyHalf()) return;
 
-        // Direction from the SAME yaw that turns P2's camera — what you see is what you walk
         var cam = GetComponent<CameraDirector>();
         float yaw = cam != null ? cam.BotYaw : 0f;
-        Vector3 dir = Quaternion.Euler(0f, yaw, 0f) * new Vector3(moveInput.x, 0f, moveInput.y);
+         Vector3 dir = Quaternion.Euler(0f, camDir != null ? camDir.BotYaw : 0f, 0f)
+                * new Vector3(moveInput.x, 0f, moveInput.y);
+
+        if (Time.frameCount % 60 == 0)   // TEMP diagnostic — delete after
+            Debug.Log($"[P2Dir] camFound={(cam != null)} yaw={yaw:F1} " +
+                      $"input={moveInput} dir={dir}");
+
         SubmitMoveServerRpc(dir);
     }
     private bool IsGrounded()

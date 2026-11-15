@@ -257,7 +257,7 @@ GameObject:
   - component: {fileID: 2535444920149352944}
   - component: {fileID: 2740918992196342197}
   m_Layer: 0
-  m_Name: LookPivot
+  m_Name: LookPivotBot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

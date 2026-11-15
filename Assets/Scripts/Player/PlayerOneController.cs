@@ -18,8 +18,11 @@ public class PlayerOneController : NetworkBehaviour
 
     private SplitCharacterManager mgr;
     private float lastSentLean;
-
-    public override void OnNetworkSpawn() => mgr = GetComponentInParent<SplitCharacterManager>();
+    private CameraDirector camDir;
+    public override void OnNetworkSpawn(){
+    mgr = GetComponentInParent<SplitCharacterManager>();
+    camDir = GetComponentInParent<CameraDirector>();
+    }
     public override void OnNetworkDespawn() => mgr = null;
 
     private void Update()
@@ -37,7 +40,7 @@ public class PlayerOneController : NetworkBehaviour
     private void HandleLean()
     {
         var director = GetComponent<CameraDirector>();
-        float pitch = director != null ? director.TopPitch : 0f;
+        float pitch = camDir != null ? camDir.TopPitch : 0f;
         float lean = Mathf.Clamp(pitch * leanRatio, -maxLeanAngle, maxLeanAngle);
 
         if (Mathf.Abs(lean - lastSentLean) > 0.5f)   // skip near-identical updates
@@ -57,8 +60,8 @@ public class PlayerOneController : NetworkBehaviour
 
     private void HandleFire()
     {
-        if (Mouse.current.leftButton.wasPressedThisFrame)
-            FireServerRpc(GetComponent<CameraDirector>().TopPitch);
+         if (Mouse.current.leftButton.wasPressedThisFrame)
+        FireServerRpc(camDir != null ? camDir.TopPitch : 0f);
     }
 
     private bool ControlsMyHalf()

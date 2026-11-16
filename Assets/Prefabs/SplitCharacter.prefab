@@ -63,10 +63,13 @@ MonoBehaviour:
   magSize: 30
   reloadTime: 2.4
   gunRoot: {fileID: 1740110709}
-  muzzleTip: {fileID: 0}
+  muzzleTip: {fileID: 391444721543475179}
   hipSocket: {fileID: 2118368821709181603}
   adsSocket: {fileID: 5654718234186417771}
-  tracer: {fileID: 3691206843184686195}
+  bulletPrefab: {fileID: 6336602918752481345, guid: d43e232dc96223b40b63db8b113a44f1, type: 3}
+  bulletSpeed: 80
+  crosshair: {fileID: 0}
+  crosshairHot: {r: 1, g: 0.25, b: 0.25, a: 1}
   LeanRoll:
     m_InternalValue: 0
 --- !u!1 &2535444919513788841
@@ -85,7 +88,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &2535444919513788840
 Transform:
   m_ObjectHideFlags: 0
@@ -481,6 +484,7 @@ GameObject:
   - component: {fileID: 287785659367888711}
   - component: {fileID: 5957001050798921709}
   - component: {fileID: 6001284747966249873}
+  - component: {fileID: 5366265066231756186}
   m_Layer: 0
   m_Name: SplitCharacter
   m_TagString: Untagged
@@ -504,7 +508,7 @@ Transform:
   - {fileID: 788829215573169629}
   - {fileID: 6126336917312254807}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &8291319241244117703
 Rigidbody:
@@ -534,7 +538,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 817902800
+  GlobalObjectIdHash: 375328322
   InScenePlacedSourceGlobalObjectIdHash: 3675044719
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
@@ -648,6 +652,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ff350ce1ecfe6146925d6783e3bb73c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &5366265066231756186
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4148616098350476173}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9cdcb1b34f9362148830139f28ed8c9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  max: 100
+  Value:
+    m_InternalValue: 100
+  despawnOnDeath: 0
 --- !u!1 &4760118065378818622
 GameObject:
   m_ObjectHideFlags: 0

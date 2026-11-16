@@ -11,4 +11,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Sences/PlayGround.unity
     guid: 55642c344f6f57349a9048ecd6ba7499
+  - enabled: 1
+    path: Assets/Sences/Level 1.unity
+    guid: cd8617b5dcfd0424aa86665ec7943725
   m_configObjects: {}

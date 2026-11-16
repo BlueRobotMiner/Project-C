@@ -14693,6 +14693,63 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1909515508}
   m_CullTransparentMesh: 1
+--- !u!1 &1922634020
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1922634022}
+  - component: {fileID: 1922634021}
+  m_Layer: 0
+  m_Name: Audio manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1922634021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1922634020}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d429f987903554479eb515f8fe947e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gunshot: {fileID: 8300000, guid: 512785f48e160204790e072aa205e838, type: 3}
+  bulletImpact: {fileID: 8300000, guid: 75adfe9a619833445a701305b983e548, type: 3}
+  footstep: {fileID: 8300000, guid: 54d184f3ba64c17438ee4902e2ec09f7, type: 3}
+  tongueShoot: {fileID: 8300000, guid: 857660e55c12565499974b25db43eea9, type: 3}
+  tongueStick: {fileID: 8300000, guid: 67574bba7d4e39544b04ab2af28d0a75, type: 3}
+  tongueMiss: {fileID: 8300000, guid: 8315d68780f0cf64ab97bb84ac3508ad, type: 3}
+  spotted: {fileID: 8300000, guid: 65e00c105c185fd46b2551165fe87ee7, type: 3}
+  uiClick: {fileID: 8300000, guid: 277efe5d6beb611439e56ec17149291a, type: 3}
+  uiTick: {fileID: 8300000, guid: 58c289d1a2a17f9498b982c4d48e054d, type: 3}
+  poolSize: 16
+  worldVolume: 0.8
+  uiVolume: 0.6
+  worldMaxDist: 60
+--- !u!4 &1922634022
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1922634020}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 284.11847, y: 338.62213, z: -169.62509}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 8
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1930041508
 GameObject:
   m_ObjectHideFlags: 0

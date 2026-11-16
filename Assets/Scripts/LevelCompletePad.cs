@@ -7,8 +7,9 @@ using TMPro;
 /// Green level-complete pad: the SERVER loads the next level. Gate: every AI in
 /// the scene must be dead (UNTICK 'Require All Enemies Dead' to test freely).
 /// Flow: step on pad → "Level Complete" panel pops on both screens with the
-/// completion time (MM:SS) → short hold → server loads the next scene.
-/// Scene-placed NetworkObject: resets automatically when the scene reloads.
+/// completion time (MM:SS) → unscaled hold (the world is FROZEN behind it) →
+/// server loads the next scene. Tick 'Triggers Game Over' on the LAST level's
+/// pad to end on the Game Over panel (victory menu) instead of a scene load.
 /// </summary>
 public class LevelCompletePad : NetworkBehaviour
 {
@@ -23,17 +24,23 @@ public class LevelCompletePad : NetworkBehaviour
     [Tooltip("Require every AI in the scene to be dead before the pad works. UNTICK FOR TESTING — then the pad completes with enemies still alive.")]
     [SerializeField] private bool requireAllEnemiesDead = true;
 
+    [Header("Finale")]
+    [Tooltip("Tick on the LAST level's pad: instead of loading the next scene, pop the Game Over panel after the complete panel. Its buttons become the victory menu (Continue → Level 1, Lobby → Playground, Main Menu → disconnect).")]
+    [SerializeField] private bool triggersGameOver;
+
     [Header("UI")]
     [Tooltip("Full-screen 'Level Complete' panel in this scene's HUD. Starts inactive.")]
     [SerializeField] private GameObject completePanel;
     [Tooltip("TMP text on the panel showing the completion time, e.g. 'Completed in 02:35'.")]
     [SerializeField] private TMP_Text timeText;
-    
-    [Header("Finale")]
-    [Tooltip("Tick on the LAST level's pad: instead of loading the next scene, pop the Game Over panel after the complete panel. Its buttons become the victory menu (Continue → Level 1, Lobby → Playground, Main Menu → disconnect).")]
-    [SerializeField] private bool triggersGameOver;
+
+    /// <summary>Static freeze flag while the complete panel holds the screen
+    /// (PauseController's InputBlocked reads it — single clock-writer rule).</summary>
+    public static bool Frozen { get; private set; }
 
     private bool fired;
+
+    public override void OnNetworkSpawn() => Frozen = false;   // fresh scene → unfrozen
 
     /// <summary>Server-only: the host simulates the body, so the host's trigger is the truth.</summary>
     private void OnTriggerEnter(Collider other)
@@ -55,12 +62,20 @@ public class LevelCompletePad : NetworkBehaviour
         string mmss = $"{total / 60:00}:{total % 60:00}";
         ShowCompleteClientRpc(mmss);
 
-        Invoke(nameof(LoadNext), loadDelay);
+        // UNSCALED hold — Invoke uses scaled time, which would deadlock at timeScale 0.
+        StartCoroutine(CompleteHold(loadDelay));
+    }
+
+    private System.Collections.IEnumerator CompleteHold(float seconds)
+    {
+        yield return new WaitForSecondsRealtime(seconds);   // UNSCALED — world is frozen
+        LoadNext();
     }
 
     [ClientRpc]
     private void ShowCompleteClientRpc(string mmss)
     {
+        Frozen = true;                                  // hold the world while the panel is up
         if (completePanel != null) completePanel.SetActive(true);
         if (timeText != null) timeText.text = $"Completed in {mmss}";
     }

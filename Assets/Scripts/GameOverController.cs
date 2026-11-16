@@ -6,7 +6,8 @@ using UnityEngine.UI;
 /// <summary>
 /// Game-over flow for the shared body. The server publishes GameOver when the
 /// character's Health hits zero (Health → TriggerGameOver); both clients show
-/// the panel from the same replicated state.
+/// the panel from the same replicated state, and BOTH freeze their clock
+/// (PauseController reads the static Frozen mirror — single clock-writer rule).
 /// Play Again / Back to Lobby are server-loaded scenes; Main Menu is a LOCAL
 /// disconnect — whoever clicks leaves (host clicking drops everyone).
 /// The Hud is per-scene, so the fresh Hud in the next scene resets GameOver.
@@ -28,6 +29,9 @@ public class GameOverController : NetworkBehaviour
     /// <summary>Server-owned shared state. New scene → new Hud → false again.</summary>
     public NetworkVariable<bool> GameOver = new(false);
 
+    /// <summary>Static mirror of the replicated state, so input gates freeze on game over anywhere.</summary>
+    public static bool Frozen { get; private set; }
+
     private bool loading;   // guards double-clicks → double LoadScene
 
     public override void OnNetworkSpawn()
@@ -39,15 +43,16 @@ public class GameOverController : NetworkBehaviour
 
     private void Update()
     {
-        if (panel != null) panel.SetActive(GameOver.Value);
+        Frozen = GameOver.Value;                    // replicated truth → local mirror
+        if (panel != null) panel.SetActive(Frozen);
+        // NOTE: Time.timeScale is written ONLY by PauseController (single-writer rule)
     }
 
     /// <summary>Called by Health on the SERVER when the shared body dies.</summary>
     public void TriggerGameOver()
     {
         if (!IsServer) return;
-        GameOver.Value = true;
-        Time.timeScale = 0f;   // freeze the world behind the panel
+        GameOver.Value = true;   // freeze happens via PauseController reading Frozen
     }
 
     // ---- buttons ----
@@ -73,9 +78,9 @@ public class GameOverController : NetworkBehaviour
         if (!GameOver.Value || loading) return;   // only from a real game-over, once
         loading = true;
 
-        Time.timeScale = 1f;                      // unfreeze for the new scene
         GameOver.Value = false;
         NetworkManager.SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
         // the Hud dies with the old scene; the new scene's Hud spawns GameOver=false
+        // (clock restore happens via PauseController, which now owns timeScale)
     }
 }
